@@ -61,16 +61,6 @@ function BigTableAdapter(options) {
 
     this.client = new jsData.utils.Promise(function (resolve, reject) {
 
-
-        /*
-        mongodb.MongoClient.connect(opts.uri, opts.mongoDriverOpts, function (err, db) {
-            if (err) {
-                return reject(err);
-            }
-            _this._db = db;
-            resolve(db);
-        });
-        */
     });
 }
 
@@ -85,7 +75,7 @@ jsDataAdapter.Adapter.extend({
     /**
      * Retrieve the records that match the selection query.
      *
-     * @method MongoDBAdapter#findAll
+     * @method BigTableAdapter#findAll
      * @param {object} mapper The mapper.
      * @param {object} query Selection query.
      * @param {object} [opts] Configuration options.
@@ -101,7 +91,7 @@ jsDataAdapter.Adapter.extend({
      * Retrieve the records that match the selection query. Internal method used
      * by Adapter#findAll.
      *
-     * @method MongoDBAdapter#_findAll
+     * @method BigTableAdapter#_findAll
      * @private
      * @param {object} mapper The mapper.
      * @param {object} query Selection query.

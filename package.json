@@ -6,14 +6,16 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
+  "author": "Dariusz Dusza",
   "license": "ISC",
   "dependencies": {
     "@google-cloud/bigtable": "^0.10.2",
     "bluebird": "^3.5.1",
-    "console-stamp": "^0.2.6",
-    "dependable": "^1.1.0",
     "js-data": "^3.0.1",
     "js-data-adapter": "^0.8.5"
+  },
+  "repository" :
+  { "type" : "git"
+  , "url" : "https://github.com/dariuszdusza/js-data-bigtable.git"
   }
 }
