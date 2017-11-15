@@ -7,14 +7,96 @@
 var jsData        = require('js-data');
 var jsDataAdapter = require('js-data-adapter');
 
-var DEFAULTS = {};
+var defineProperty = function (obj, key, value) {
+    if (key in obj) {
+        Object.defineProperty(obj, key, {
+            value: value,
+            enumerable: true,
+            configurable: true,
+            writable: true
+        });
+    } else {
+        obj[key] = value;
+    }
 
-/*
- *  options
- *          promise     : promise,
- *          projectId   : project id,
- *          keyFilename : json file,
- *          instance    : instance name,
+    return obj;
+};
+
+
+var DEFAULTS = {
+
+    /**
+     * Convert ObjectIDs to strings when pulling records out of the database.
+     *
+     * @name BigTableAdapter#translateId
+     * @type {boolean}
+     * @default true
+     */
+    translateId: true,
+
+    /**
+     * Convert fields of record from database that are ObjectIDs to strings
+     *
+     * @name BigTableAdapter#translateObjectIDs
+     * @type {Boolean}
+     * @default false
+     */
+    translateObjectIDs: false
+};
+
+var COUNT_OPTS_DEFAULTS = {};
+var FIND_OPTS_DEFAULTS = {};
+
+
+
+
+/**
+ * BigTableAdapter class.
+ *
+ * @example
+ * // Use Container instead of DataStore on the server
+ * import { Container } from 'js-data';
+ * import BigTableAdapter from 'js-data-BigTable';
+ *
+ * // Create a store to hold your Mappers
+ * const store = new Container({
+ *   mapperDefaults: {
+ *     // BigTable uses "_id" as the primary key
+ *     idAttribute: '_id'
+ *   }
+ * });
+ *
+ * // Create an instance of BigTableAdapter with default settings
+ * const adapter = new BigTableAdapter();
+ *
+ * // Mappers in "store" will use the BigTable adapter by default
+ * store.registerAdapter('BigTable', adapter, { default: true });
+ *
+ * // Create a Mapper that maps to a "user" collection
+ * store.defineMapper('user');
+ *
+ * @class BigTableAdapter
+ * @extends Adapter
+ * @param {object} [options] Configuration options.
+ *
+ *     options = {
+ *                  promise     : promise,
+ *                  projectId   : project id,
+ *                  keyFilename : json file,
+ *                  instance    : instance name,
+ *              }
+ *
+ * @param {boolean} [opts.debug=false] See {@link Adapter#debug}.
+ * @param {object} [opts.countOpts] See {@link BigTableAdapter#countOpts}.
+ * @param {object} [opts.findOpts] See {@link BigTableAdapter#findOpts}.
+ * @param {object} [opts.findOneOpts] See {@link BigTableAdapter#findOneOpts}.
+ * @param {object} [opts.insertOpts] See {@link BigTableAdapter#insertOpts}.
+ * @param {object} [opts.insertManyOpts] See {@link BigTableAdapter#insertManyOpts}.
+ * @param {boolean} [opts.raw=false] See {@link Adapter#raw}.
+ * @param {object} [opts.removeOpts] See {@link BigTableAdapter#removeOpts}.
+ * @param {boolean} [opts.translateId=true] See {@link BigTableAdapter#translateId}.
+ * @param {boolean} [opts.translateObjectIDs=false] See {@link BigTableAdapter#translateObjectIDs}.
+ * @param {object} [opts.updateOpts] See {@link BigTableAdapter#updateOpts}.
  */
 function BigTableAdapter(options) {
 
@@ -56,6 +138,26 @@ function BigTableAdapter(options) {
     var BigTable = require('@google-cloud/bigtable')(options);
 
     jsDataAdapter.Adapter.call(this, options);
+
+    /**
+     * Default options to pass to collection#count.
+     *
+     * @name BigTableAdapter#countOpts
+     * @type {object}
+     * @default {}
+     */
+    this.countOpts || (this.countOpts = {});
+    jsData.utils.fillIn(this.countOpts, COUNT_OPTS_DEFAULTS);
+
+    /**
+     * Default options to pass to collection#find.
+     *
+     * @name BigTableAdapter#findOpts
+     * @type {object}
+     * @default {}
+     */
+    this.findOpts || (this.findOpts = {});
+    jsData.utils.fillIn(this.findOpts, FIND_OPTS_DEFAULTS);
 
     this.client =  new jsData.utils.Promise(
         function (resolve, reject) {
@@ -256,6 +358,121 @@ jsDataAdapter.Adapter.extend({
     },
 
 
+    /**
+     * Retrieve the number of records that match the selection query.
+     *
+     * @method BigTableAdapter#count
+     * @param {object} mapper The mapper.
+     * @param {object} query Selection query.
+     * @param {object} [opts] Configuration options.
+     * @param {object} [opts.countOpts] Options to pass to collection#count.
+     * @param {boolean} [opts.raw=false] Whether to return a more detailed
+     * response object.
+     * @param {string[]} [opts.with=[]] Relations to eager load.
+     * @return {Promise}
+     */
+
+    /**
+     * Retrieve the records that match the selection query. Internal method used
+     * by Adapter#count.
+     *
+     * @method BigTableAdapter#_count
+     * @private
+     * @param {object} mapper The mapper.
+     * @param {object} query Selection query.
+     * @param {object} [opts] Configuration options.
+     * @return {Promise}
+     */
+    _count: function _count(mapper, query, opts) {
+        var _this2 = this;
+
+        opts || (opts = {});
+
+        return this._run(function (client, success, failure) {
+            var collectionId = _this2._getCollectionId(mapper, opts);
+            var countOpts = _this2.getOpt('countOpts', opts);
+            jsData.utils.fillIn(countOpts, _this2.getQueryOptions(mapper, query));
+
+            /*
+            var mongoQuery = _this2.getQuery(mapper, query);
+
+            client.collection(collectionId).count(mongoQuery, countOpts, function (err, count) {
+                return err ? failure(err) : success([count, {}]);
+            });
+            */
+            return success([count, {count: 123}]);
+        });
+    },
+
+    
+    /**
+     * Retrieve the record with the given primary key.
+     *
+     * @method BigTableAdapter#find
+     * @param {object} mapper The mapper.
+     * @param {(string|number)} id Primary key of the record to retrieve.
+     * @param {object} [opts] Configuration options.
+     * @param {string|string[]|object} [opts.fields] Select a subset of fields to be returned.
+     * @param {object} [opts.findOneOpts] Options to pass to collection#findOne.
+     * @param {boolean} [opts.raw=false] Whether to return a more detailed
+     * response object.
+     * @param {string[]} [opts.with=[]] Relations to eager load.
+     * @return {Promise}
+     */
+
+    /**
+     * Retrieve the record with the given primary key. Internal method used by
+     * Adapter#find.
+     *
+     * @method BigTableAdapter#_find
+     * @private
+     * @param {object} mapper The mapper.
+     * @param {(string|number)} id Primary key of the record to retrieve.
+     * @param {object} [opts] Configuration options.
+     * @param {string|string[]|object} [opts.fields] Select a subset of fields to be returned.
+     * @return {Promise}
+     */
+    _find: function _find(mapper, id, opts) {
+
+        console.log('[MAPPER]',mapper);
+        console.log('[ID]', id);
+
+        var _this7 = this;
+
+        opts || (opts = {});
+        opts.with || (opts.with = []);
+
+        return this.
+                _run(function (client, success, failure) {
+
+                    var collectionId = _this7._getCollectionId(mapper, opts);
+
+                    try {
+                        var row = client
+                                    .table(collectionId)
+                                    .row(id);
+
+                        row.get(function(err) {
+                            if(err) {
+                                failure(err);
+                            } else {
+                                success(row.data);
+                            }
+                        });
+
+                    } catch (error) {
+                        console.error(error);
+                    }
+                })
+                .then(function (record) {
+                    if (record) {
+                        _this7._translateObjectIDs(record, opts);
+                    } else {
+                        record = undefined;
+                    }
+                    return [record, {}];
+                });
+    },
 
 
     /**
@@ -291,6 +508,8 @@ jsDataAdapter.Adapter.extend({
      */
     _findAll: function _findAll(mapper, query, opts) {
 
+        console.log('[opts]', opts);
+
         var _this8 = this;
 
         opts || (opts = {});
@@ -300,7 +519,7 @@ jsDataAdapter.Adapter.extend({
 
                 var collectionId = _this8._getCollectionId(mapper, opts);
 
-                var findOpts = _this8.getOpt('findOpts', opts) || {};
+                var findOpts = _this8.getOpt('findOpts', opts);
                 jsData.utils.fillIn(findOpts, _this8.getQueryOptions(mapper, query));
                 findOpts.fields = _this8._getFields(mapper, opts);
 
@@ -351,6 +570,49 @@ jsDataAdapter.Adapter.extend({
             this._translateFieldObjectIDs(r);
         } else if (this.getOpt('translateId', opts)) {
             this._translateId(r);
+        }
+        return r;
+    },
+
+    /**
+     * Translate ObjectIDs to strings.
+     *
+     * @method BigTableAdapter#_translateId
+     * @return {*}
+     */
+    _translateId: function _translateId(r) {
+        if (jsData.utils.isArray(r)) {
+            r.forEach(function (_r) {
+                var __id = _r._id ? _r._id.toString() : _r._id;
+                _r._id = typeof __id === 'string' ? __id : _r._id;
+            });
+        } else if (jsData.utils.isObject(r)) {
+            var __id = r._id ? r._id.toString() : r._id;
+            r._id = typeof __id === 'string' ? __id : r._id;
+        }
+        return r;
+    },
+
+    /**
+     * Translate ObjectIDs to strings.
+     *
+     * @method BigTableAdapter#_translateFieldObjectIDs
+     * @return {*}
+     */
+    _translateFieldObjectIDs: function _translateFieldObjectIDs(r) {
+        var _checkFields = function _checkFields(r) {
+            for (var field in r) {
+                if (r[field]._bsontype === 'ObjectID') {
+                    r[field] = typeof r[field].toString() === 'string' ? r[field].toString() : r[field];
+                }
+            }
+        };
+        if (jsData.utils.isArray(r)) {
+            r.forEach(function (_r) {
+                _checkFields(_r);
+            });
+        } else if (jsData.utils.isObject(r)) {
+            _checkFields(r);
         }
         return r;
     },
