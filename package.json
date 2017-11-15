@@ -1,6 +1,6 @@
 {
   "name": "js-data-bigtable",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -14,8 +14,8 @@
     "js-data": "^3.0.1",
     "js-data-adapter": "^0.8.5"
   },
-  "repository" :
-  { "type" : "git"
-  , "url" : "https://github.com/dariuszdusza/js-data-bigtable.git"
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dariuszdusza/js-data-bigtable.git"
   }
 }
