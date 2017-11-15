@@ -304,28 +304,18 @@ jsDataAdapter.Adapter.extend({
                 jsData.utils.fillIn(findOpts, _this8.getQueryOptions(mapper, query));
                 findOpts.fields = _this8._getFields(mapper, opts);
 
-                var BigTableQuery = _this8.getQuery(mapper, query);
-
-                var filter = [BigTableQuery];
-
+                console.log('[QUERY]', query, Object.keys(query).length);
+                var filter = Object.keys(query).length ? { filter: [ _this8.getQuery(mapper, query) ] } : {};
                 console.log('[FILTER]',filter);
 
                 client
                     .table(collectionId)
-                    .getRows({
-                        filter: filter
-                    })
+                    .getRows(filter)
                     .then(
                         function(data) {
-                            //console.log(data[0]);
-                            success(
-                                data[0]
-                                    .forEach(function (element, index) {
-                                        console.log('[element][id]', element.id);
-                                        console.log('[element][data]', element.data);
-                                        //return {id: element['id'], data: element['data']};
-                                    })
-                            );
+                            success(Promise.all( data[0].map(function(object) {
+                                return { "id":object["id"], "data": object["data"] }
+                            })))
                         },
                         function(error) {
                             failure(error);
