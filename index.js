@@ -382,7 +382,7 @@ var version = {
     full: '1.0.0',
     major: 1,
     minor: 0,
-    patch: 0
+    patch: 1
 };
 
 exports.BigTableAdapter = BigTableAdapter;
