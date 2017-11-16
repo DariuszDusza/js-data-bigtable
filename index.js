@@ -383,25 +383,99 @@ jsDataAdapter.Adapter.extend({
      * @param {object} [opts] Configuration options.
      * @return {Promise}
      */
+
+    /*
+     * Getting a count on a large table requires reading something from every single row in Bigtable.
+     * There isn't a notion of just getting a single value that represents a count.
+     */
     _count: function _count(mapper, query, opts) {
         var _this2 = this;
 
         opts || (opts = {});
 
         return this._run(function (client, success, failure) {
+
             var collectionId = _this2._getCollectionId(mapper, opts);
             var countOpts = _this2.getOpt('countOpts', opts);
             jsData.utils.fillIn(countOpts, _this2.getQueryOptions(mapper, query));
 
-            /*
-            var mongoQuery = _this2.getQuery(mapper, query);
+            console.log('[QUERY]', query, Object.keys(query).length);
+            var filter = Object.keys(query).length ? { filter: [ _this2.getQuery(mapper, query) ] } : {};
+            console.log('[FILTER]',filter);
 
-            client.collection(collectionId).count(mongoQuery, countOpts, function (err, count) {
-                return err ? failure(err) : success([count, {}]);
-            });
-            */
-            return success([count, {count: 123}]);
+            client
+                .table(collectionId)
+                .getRows(filter)
+                .then(
+                    function(data) {
+                        return success([{count: data[0].length}]);
+                    },
+                    function(error) {
+                        return failure(error);
+                    }
+                );
         });
+    },
+
+    /**
+     * Create a new record.
+     *
+     * @method BigTAbleAdapter#create
+     * @param {object} mapper The mapper.
+     * @param {object} props The record to be created.
+     * @param {object} [opts] Configuration options.
+     * @param {object} [opts.insertOpts] Options to pass to collection#insert.
+     * @param {boolean} [opts.raw=false] Whether to return a more detailed
+     * @return {Promise}
+     */
+
+    /**
+     * Create a new record. Internal method used by Adapter#create.
+     *
+     * @method BigTAbleAdapter#_create
+     * @private
+     * @param {object} mapper The mapper.
+     * @param {object} props The record to be created.
+     * @param {object} [opts] Configuration options.
+     * @return {Promise}
+     */
+    _create: function _create(mapper, props, opts) {
+
+        console.log('[PROPS]',props);
+
+        var _this3 = this;
+
+        props || (props = {});
+        opts || (opts = {});
+
+        return this._run(function (client, success, failure) {
+
+            /*
+            var collectionId = _this3._getCollectionId(mapper, opts);
+            var insertOpts = _this3.getOpt('insertOpts', opts);
+
+            var collection = client.collection(collectionId);
+            var handler = function handler(err, cursor) {
+                return err ? failure(err) : success(cursor);
+            };
+
+            props = jsData.utils.plainCopy(props);
+
+            if (collection.insertOne) {
+                collection.insertOne(props, insertOpts, handler);
+            } else {
+                collection.insert(props, insertOpts, handler);
+            }
+        }).then(function (cursor) {
+            var record = void 0;
+            var r = cursor.ops ? cursor.ops : cursor;
+            _this3._translateObjectIDs(r, opts);
+            record = jsData.utils.isArray(r) ? r[0] : r;
+            cursor.connection = undefined;
+            return [record, cursor];
+        });
+        */
+        return [ {record: "created"}, {cursor: "?"}];
     },
 
     
