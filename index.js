@@ -44,8 +44,9 @@ var DEFAULTS = {
     translateObjectIDs: false
 };
 
-var COUNT_OPTS_DEFAULTS = {};
-var FIND_OPTS_DEFAULTS = {};
+var COUNT_OPTS_DEFAULTS  = {};
+var FIND_OPTS_DEFAULTS   = {};
+var INSERT_OPTS_DEFAULTS = {};
 
 
 
@@ -159,11 +160,22 @@ function BigTableAdapter(options) {
     this.findOpts || (this.findOpts = {});
     jsData.utils.fillIn(this.findOpts, FIND_OPTS_DEFAULTS);
 
+    /**
+     * Default options to pass to collection#insert.
+     *
+     * @name BigTableAdapter#insertOpts
+     * @type {object}
+     * @default {}
+     */
+    this.insertOpts || (this.insertOpts = {});
+    jsData.utils.fillIn(this.insertOpts, INSERT_OPTS_DEFAULTS);
+
+
     this.client =  new jsData.utils.Promise(
         function (resolve, reject) {
             _this._db = BigTable.instance(options.instance);
             resolve(_this._db);
-            reject('ERROR WHILE INITIALIZING BIGTABLE');
+            reject(function(){console.log('ERROR');return 'ERROR WHILE INITIALIZING BIGTABLE'});
         });
 }
 
@@ -439,9 +451,35 @@ jsDataAdapter.Adapter.extend({
      * @param {object} [opts] Configuration options.
      * @return {Promise}
      */
+
+    /*
+     Creating Rows
+     New rows can be created within your table using bigtable/table#insert.
+     You must provide a unique key for each row to be inserted,
+     this key can then be used to retrieve your row at a later time.
+     With Bigtable, all columns have a unique id composed of a column family and a column qualifier.
+
+     In the example below follows is the column family and tjefferson is the column qualifier.
+     Together they could be referred to as follows:tjefferson.
+
+     var rows = [{ key: 'wmckinley',
+                        data: {
+                            follows: {
+                                tjefferson: 1
+                            }}}];
+
+     table.insert(rows, function(err) {
+     if (!err) {
+     // Your rows were successfully inserted.
+     }
+     });
+     */
+
     _create: function _create(mapper, props, opts) {
 
+        console.log('[MAPPER]',mapper);
         console.log('[PROPS]',props);
+        console.log('[OPTS]',opts);
 
         var _this3 = this;
 
@@ -450,22 +488,36 @@ jsDataAdapter.Adapter.extend({
 
         return this._run(function (client, success, failure) {
 
-            /*
             var collectionId = _this3._getCollectionId(mapper, opts);
             var insertOpts = _this3.getOpt('insertOpts', opts);
 
-            var collection = client.collection(collectionId);
+            var row = [{ key: 'wmckinley',
+                data: {
+                    follows: {
+                        tjefferson: 1
+                    }}}];
+
+            client
+                .table(collectionId)
+                .insert(row, function(err) {
+                    if (err) {
+                        failure(err);
+                    } else {
+                        success()
+                    }
+                });
+
+
+
+            /*var collection = client.collection(collectionId);
             var handler = function handler(err, cursor) {
                 return err ? failure(err) : success(cursor);
-            };
+            };*/
 
             props = jsData.utils.plainCopy(props);
 
-            if (collection.insertOne) {
-                collection.insertOne(props, insertOpts, handler);
-            } else {
-                collection.insert(props, insertOpts, handler);
-            }
+            success({});
+
         }).then(function (cursor) {
             var record = void 0;
             var r = cursor.ops ? cursor.ops : cursor;
@@ -473,9 +525,7 @@ jsDataAdapter.Adapter.extend({
             record = jsData.utils.isArray(r) ? r[0] : r;
             cursor.connection = undefined;
             return [record, cursor];
-        });
-        */
-        return [ {record: "created"}, {cursor: "?"}];
+        })
     },
 
     
