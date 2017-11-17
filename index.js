@@ -474,7 +474,7 @@ jsDataAdapter.Adapter.extend({
      }
      });
      */
-
+    /*
     _create: function _create(mapper, props, opts) {
 
         console.log('[MAPPER]',mapper);
@@ -509,11 +509,6 @@ jsDataAdapter.Adapter.extend({
 
 
 
-            /*var collection = client.collection(collectionId);
-            var handler = function handler(err, cursor) {
-                return err ? failure(err) : success(cursor);
-            };*/
-
             props = jsData.utils.plainCopy(props);
 
             success({});
@@ -527,6 +522,7 @@ jsDataAdapter.Adapter.extend({
             return [record, cursor];
         })
     },
+    */
 
     
     /**
